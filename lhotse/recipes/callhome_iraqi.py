@@ -1,11 +1,24 @@
 """
-About the Gulf Arabic Conversational Telephone Speech Corpus
+About the Iraqi Arabic Conversational Telephone Speech Corpus
 
-  The Gulf Arabic Conversational corpus consists of roughly 
-  2,800 min of spontaneous telephone conversations in Colloquial 
-  Gulf Arabic. The datasets are:
-  Speech : LDC2006S43
-  Transcripts : LDC2006T15
+  The Iraqi Arabic Conversational corpus contains roughly 
+   3000 mins of speech from Iraqi Arabic speakers taking part in 
+   spontaneous telephone conversations in Colloquial Iraqi Arabic. 
+   A total of 478 conversation sides from 474 unique speakers are provided, 
+   and most of these call sides comprise both sides of a conversation
+   (that is, 202 two-channel recordings plus 74 single-channel recordings).
+    The average duration per call is about six minutes, so each call side 
+    contains about three minutes of speech, on average.
+
+The audio directory contains three subdirectories:
+
+devtest -- 12 two-channel audio files
+train1c -- 74 single-channel audio files
+train2c -- 190 two-channel audio files
+The datasets are:
+Speech : LDC2006S45
+Transcripts : LDC2006T16
+
 """
 
 from decimal import Decimal
@@ -22,20 +35,20 @@ from lhotse.qa import fix_manifests, validate_recordings_and_supervisions
 from lhotse.utils import Pathlike, check_and_rglob
 
 
-def prepare_callhome_gulf(
+def prepare_callhome_iraqi(
     audio_dir: Pathlike,
     transcript_dir: Pathlike,
     output_dir: Optional[Pathlike] = None,
     text_cleaning: bool = True,
-    num_jobs: int = 10,
+    num_jobs: int = 2,
 ) -> Dict[str, Union[RecordingSet, SupervisionSet]]:
     """
     Prepare manifests for the Callhome Gulf Arabic Corpus
     We create two manifests: one with recordings, and the other one with text
     supervisions.
 
-    :param audio_dir: Path to ``LDC2006S43`` package.
-    :param transcript_dir: Path to the ``LDC2006T15`` content
+    :param audio_dir: Path to ``LDC2006S45`` package.
+    :param transcript_dir: Path to the ``LDC2006T16`` content
     :param output_dir: Directory where the manifests should be written. Can be omitted
         to avoid writing.
     :param text_cleaning: Bool, if True, basic text cleaning is performed.
@@ -48,13 +61,14 @@ def prepare_callhome_gulf(
     manifests = {}
 
     for split in ["devtest", "train2c", "train1c"]:
-        info(f"Processing Callhome Gulf subset: {split}")
+        info(f"Processing Callhome Iraqi subset: {split}")
         recordings = RecordingSet.from_dir(
-            (audio_dir / "audio" / split), pattern="*.sph", num_jobs=num_jobs
+            (audio_dir / "arb_iraq_ctsp/data/audio" / split),
+            pattern="*.sph", num_jobs=num_jobs
         )
         transcript_paths = check_and_rglob(
             transcript_dir /
-            f"transc/{split}",
+            f"arb_iraq_cttr/data/transc/{split}",
             "*.txt",
         )
 
@@ -65,7 +79,7 @@ def prepare_callhome_gulf(
                 line = line.strip()
                 if not line or len(line.split('\t')) < 4:
                     continue
-                recording_id = p.stem
+                recording_id = (p.stem).lower()
                 # example line:
                 # [3.2701] [5.4100]	B:	ألو (ضجة)	>alaw (Djp)
                 time, spk, text, text_bw = line.split('\t')
@@ -79,6 +93,7 @@ def prepare_callhome_gulf(
 
                 if duration <= 0 or text == '':
                     continue
+
                 if split == "train1c":
                     channel = 0
                     recording_id = recording_id
@@ -86,7 +101,7 @@ def prepare_callhome_gulf(
                     channel = ord(spk) - ord("A")
                     recording_id = f"{recording_id}_{channel}"
                 start = float(start)
-                # pdb.set_trace()
+
                 supervisions.append(
                     SupervisionSegment(
                         id=f"{recording_id}_{spk:0>2s}_{idx:0>5d}",
@@ -109,10 +124,10 @@ def prepare_callhome_gulf(
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             recordings.to_file(
-                output_dir / f"gulf_recordings_{split}.jsonl.gz"
+                output_dir / f"iraqi_recordings_{split}.jsonl.gz"
             )
             supervisions.to_file(
-                output_dir / f"gulf_supervisions_{split}.jsonl.gz"
+                output_dir / f"iraqi_supervisions_{split}.jsonl.gz"
             )
 
         manifests[split] = {"recordings": recordings,
@@ -149,7 +164,7 @@ def remove_punctuations(text: str) -> str:
 
     for p in all_punctuations:
         if p in text:
-            text = text.replace(p, " ")
+            text = text.replace(p, "")
     return text
 
 
@@ -164,19 +179,6 @@ def remove_extra_space(text: str) -> str:
     return text
 
 
-# def remove_special(text: str) -> str:
-#     """
-#     This functions removes special tokens:
-#         (): tokens enclosed in single parentheses represent nonspeech
-#             events laughter, noise, etc
-#         (()): tokens enclosed in double parentheses represent regions
-#             where the transcriber was unable to tell for sure what was said.
-#     """
-#     text = sub(r"\([\\\u0600-\u06FF]+\)", "", text)
-#     text = sub(r"\(\([\u0600-\u06FF\s]+\)\)", "", text)
-#     return text
-
-
 def cleaning(text: str) -> str:
     text = remove_special_words(text)
     text = remove_diacritics(text)
@@ -188,6 +190,6 @@ def cleaning(text: str) -> str:
 
 
 if __name__ == "__main__":
-    manifests = prepare_callhome_gulf('/alt-data/speech/asr_data/LDC/LDC2006S43',
-                                      '/alt-data/speech/asr_data/LDC/LDC2006T15',
-                                      '/home/local/QCRI/ahussein/data')
+    manifests = prepare_callhome_iraqi('/alt-data/speech/asr_data/LDC/LDC2006S45',
+                                       '/alt-data/speech/asr_data/LDC/LDC2006T16',
+                                       '/home/local/QCRI/ahussein/data')

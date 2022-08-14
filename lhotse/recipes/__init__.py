@@ -5,6 +5,7 @@ from .ali_meeting import download_ali_meeting, prepare_ali_meeting
 from .ami import download_ami, prepare_ami
 from .aspire import prepare_aspire
 from .babel import prepare_single_babel_language
+from .blark import prepare_blark
 from .broadcast_news import prepare_broadcast_news
 from .bvcc import download_bvcc, prepare_bvcc
 from .callhome_egyptian import prepare_callhome_egyptian
